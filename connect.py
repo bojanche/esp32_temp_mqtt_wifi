@@ -4,6 +4,9 @@ import wifimgr
 from time import sleep
 import machine
 import gc
+import dht
+
+d = dht.DHT22(machine.Pin(16))
 
 try:
   import usocket as socket
@@ -50,6 +53,8 @@ while True:
       gc.collect()
     conn, addr = s.accept()
     conn.settimeout(3.0)
+    d.measure()
+    print(d.temperature())
     print('Got a connection from %s' % str(addr))
     request = conn.recv(1024)
     conn.settimeout(None)
