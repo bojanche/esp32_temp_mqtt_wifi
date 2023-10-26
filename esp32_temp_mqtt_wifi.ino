@@ -20,7 +20,7 @@ const char* PARAM_INPUT_1 = "ssid";
 const char* PARAM_INPUT_2 = "pass";
 const char* PARAM_INPUT_3 = "ip";
 const char* PARAM_INPUT_4 = "gateway";
-const char* PARAM_INPUT_4 = "broker";
+const char* PARAM_INPUT_5 = "broker";
 
 //Variables to save values from HTML form
 String ssid;
@@ -47,12 +47,6 @@ IPAddress subnet(255, 255, 255, 0);
 // Timer variables
 unsigned long previousMillis = 0;
 const long interval = 10000;  // interval to wait for Wi-Fi connection (milliseconds)
-
-// Set LED GPIO
-const int ledPin = 2;
-// Stores LED state
-
-String ledState;
 
 // Initialize SPIFFS
 void initSPIFFS() {
@@ -130,29 +124,11 @@ bool initWiFi() {
   return true;
 }
 
-// Replaces placeholder with LED state value
-String processor(const String& var) {
-  if(var == "STATE") {
-    if(digitalRead(ledPin)) {
-      ledState = "ON";
-    }
-    else {
-      ledState = "OFF";
-    }
-    return ledState;
-  }
-  return String();
-}
-
 void setup() {
   // Serial port for debugging purposes
   Serial.begin(115200);
 
   initSPIFFS();
-
-  // Set GPIO 2 as an OUTPUT
-  pinMode(ledPin, OUTPUT);
-  digitalWrite(ledPin, LOW);
   
   // Load values saved in SPIFFS
   ssid = readFile(SPIFFS, ssidPath);
@@ -167,22 +143,9 @@ void setup() {
   if(initWiFi()) {
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/index.html", "text/html", false, processor);
+      request->send(SPIFFS, "/index.html", "text/html", false);
     });
     server.serveStatic("/", SPIFFS, "/");
-    
-    // Route to set GPIO state to HIGH
-    server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request) {
-      digitalWrite(ledPin, HIGH);
-      request->send(SPIFFS, "/index.html", "text/html", false, processor);
-    });
-
-    // Route to set GPIO state to LOW
-    server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request) {
-      digitalWrite(ledPin, LOW);
-      request->send(SPIFFS, "/index.html", "text/html", false, processor);
-    });
-    server.begin();
   }
   else {
     // Connect to Wi-Fi network with SSID and password
