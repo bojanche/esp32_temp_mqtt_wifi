@@ -25,6 +25,7 @@
 #include <PubSubClient.h>
 #include "DHT.h"
 #define DHT11PIN 16
+#include "index.h"
 
 float t = 0.0;
 AsyncWebServer server(80);
@@ -33,6 +34,24 @@ DHT dht(DHT11PIN, DHT11);
 const char* broker="192.168.1.122";
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+void handleRoot() {
+ String s = MAIN_page; //Read HTML contents
+ Serial.print(s);
+  server.on("/", HTTP_GET, [&](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", s);
+  });
+}
+ 
+void handleADC() {
+ float a = dht.readTemperature();
+ char tempStr[8];
+      dtostrf(a, 1, 2, tempStr);
+  server.on("/readADC", HTTP_GET, [&](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", tempStr);
+    Serial.print(tempStr);
+  });
+ }
 
 void setup(){
   Serial.begin(115200);
@@ -54,11 +73,7 @@ void setup(){
   }else{
     Serial.println("Failed to connect to WiFi");
   }
-
-  server.on("/", HTTP_GET, [&](AsyncWebServerRequest *request){
-    request->send(200, "text/plain", "Hello from ESP");
-  });
-
+  handleRoot();
   server.begin();
   dht.begin();
   client.setServer(broker, 1883);
@@ -95,6 +110,7 @@ void loop(){
       Serial.println("°C ");
       char tempString[8];
       dtostrf(t1, 1, 2, tempString);
+      handleADC();
       client.publish("esp32/temperature", tempString);
       delay(2000);
       } 
